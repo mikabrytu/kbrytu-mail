@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Kbrytu Mail</string>
+    <string name="gmail_id">609272186335-88ud0jb0qvfv771jffh9r9mtl8u45qlf.apps.googleusercontent.com</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
+</resources>
