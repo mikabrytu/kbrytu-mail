@@ -16,6 +16,9 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -33,6 +36,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.ExponentialBackOff;
+import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.GmailScopes;
 import com.google.api.services.gmail.model.Label;
 import com.google.api.services.gmail.model.ListLabelsResponse;
@@ -51,6 +55,8 @@ public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, EasyPermissions.PermissionCallbacks {
 
     GoogleAccountCredential mCredential;
+
+    private EmailAdapter adapter;
 
     static final int REQUEST_ACCOUNT_PICKER = 1000;
     static final int REQUEST_AUTHORIZATION = 1001;
@@ -90,6 +96,15 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        List<String> list = new ArrayList<>();
+        adapter = new EmailAdapter(this, list);
+
+        RecyclerView recycler = (RecyclerView) findViewById(R.id.recycler);
+        RecyclerView.LayoutManager manager = new LinearLayoutManager(this);
+        recycler.setLayoutManager(manager);
+        recycler.setItemAnimator(new DefaultItemAnimator());
+        recycler.setAdapter(adapter);
     }
 
     /**
@@ -319,15 +334,15 @@ public class MainActivity extends AppCompatActivity
      * Placing the API calls in their own task ensures the UI stays responsive.
      */
     private class MakeRequestTask extends AsyncTask<Void, Void, List<String>> {
-        private com.google.api.services.gmail.Gmail mService = null;
+        private Gmail mService = null;
         private Exception mLastError = null;
 
         MakeRequestTask(GoogleAccountCredential credential) {
             HttpTransport transport = AndroidHttp.newCompatibleTransport();
             JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-            mService = new com.google.api.services.gmail.Gmail.Builder(
+            mService = new Gmail.Builder(
                     transport, jsonFactory, credential)
-                    .setApplicationName("Gmail API Android Quickstart")
+                    .setApplicationName("Kbrytu Mail")
                     .build();
         }
 
@@ -354,13 +369,28 @@ public class MainActivity extends AppCompatActivity
         private List<String> getDataFromApi() throws IOException {
             // Get the labels in the user's account.
             String user = "me";
-            List<String> labels = new ArrayList<String>();
+
+            List<String> list = new ArrayList<>();
+
+            ListMessagesResponse response = mService.users().messages().list(user).execute();
+            List<Message> messageList = response.getMessages();
+
+            for (Message m : messageList) {
+                //System.out.println(m.toPrettyString());
+                //System.out.println("Message snippet: " + message.getSnippet());
+
+                list.add(mService.users().messages().get(user, m.getId()).execute().getSnippet());
+            }
+
+            return list;
+
+            /*List<String> labels = new ArrayList<String>();
             //ListLabelsResponse listResponse = mService.users().labels().list(user).execute();
             ListMessagesResponse listResponse = mService.users().messages().list(user).execute();
             for (Message message : listResponse.getMessages()) {
                 labels.add(message.getSnippet());
             }
-            return labels;
+            return labels;*/
         }
 
 
@@ -374,8 +404,9 @@ public class MainActivity extends AppCompatActivity
             if (output == null || output.size() == 0) {
                 Toast.makeText(MainActivity.this, "No results returned.", Toast.LENGTH_SHORT).show();
             } else {
-                output.add(0, "Data retrieved using the Gmail API:");
-                Log.d("REQUEST", String.valueOf(output));
+                /*output.add(0, "Data retrieved using the Gmail API:");
+                Log.d("REQUEST", String.valueOf(output));*/
+                adapter.updateList(output);
             }
         }
 
